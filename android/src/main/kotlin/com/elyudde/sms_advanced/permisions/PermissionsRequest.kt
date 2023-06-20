@@ -1,7 +1,7 @@
 package com.elyudde.sms_advanced.permisions
 
 import android.annotation.TargetApi
-import androidx.fragment.app.FragmentActivity
+import android.app.Activity
 import android.os.Build
 
 
@@ -11,7 +11,7 @@ import android.os.Build
 internal class PermissionsRequest(
     private val id: Int,
     private val permissions: Array<String>,
-    private val activity: FragmentActivity
+    private val activity: Activity
 ) {
     @TargetApi(Build.VERSION_CODES.M)
     fun execute() {

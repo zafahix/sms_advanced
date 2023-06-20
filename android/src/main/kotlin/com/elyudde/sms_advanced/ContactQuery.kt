@@ -92,7 +92,7 @@ internal class ContactQueryHandler(
 }
 
 internal class ContactQuery(val context: Context, private val binding: ActivityPluginBinding) : MethodCallHandler {
-    private val permissions: Permissions = Permissions(context, binding.activity as FlutterFragmentActivity)
+    private val permissions: Permissions = Permissions(context, binding.activity )
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         if (call.method != "getContact") {
             result.notImplemented()

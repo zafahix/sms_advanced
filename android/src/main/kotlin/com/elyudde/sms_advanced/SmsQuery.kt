@@ -147,8 +147,9 @@ internal class SmsQueryHandler(
 }
 
 internal class SmsQuery(val context: Context, private val binding: ActivityPluginBinding) : MethodCallHandler {
-    private val permissions: Permissions = Permissions(context, binding.activity as FlutterFragmentActivity)
+    private val permissions: Permissions = Permissions(context, binding.activity )
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        print("call.method: ${call.method}")
         var start = 0
         var count = -1
         var threadId = -1

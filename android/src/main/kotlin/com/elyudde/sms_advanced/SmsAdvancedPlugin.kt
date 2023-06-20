@@ -1,6 +1,7 @@
 package com.elyudde.sms_advanced
 
 import android.content.Context
+import android.util.Log
 import androidx.annotation.NonNull
 import com.elyudde.sms_advanced.permisions.Permissions
 import com.elyudde.sms_advanced.status.SmsStateHandler
@@ -49,7 +50,7 @@ class SmsAdvancedPlugin() : FlutterPlugin, ActivityAware {
     this.userProfileChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "plugins.elyudde.com/userProfile", JSONMethodCodec.INSTANCE)
 
     this.simCardChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "plugins.elyudde.com/simCards", JSONMethodCodec.INSTANCE)
-
+    Log.d("flutter/SmsAdvanced", "Attached to engine")
   }
 
 
@@ -66,43 +67,49 @@ class SmsAdvancedPlugin() : FlutterPlugin, ActivityAware {
   }
 
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-    binding.addRequestPermissionsResultListener(Permissions.requestsResultsListener)
+    Log.d("flutter/SmsAdvanced", "Attaching to activity")
+    try {
+      binding.addRequestPermissionsResultListener(Permissions.requestsResultsListener)
 
-    // receive sms
-    val smsReceiver = SmsReceiver(context, binding)
-    receiveSmsChannel.setStreamHandler(smsReceiver)
+      // receive sms
+      val smsReceiver = SmsReceiver(context, binding)
+      receiveSmsChannel.setStreamHandler(smsReceiver)
 
-    // send sms
-    val sendSms = SmsSender(context, binding)
-    sendSmsChannel.setMethodCallHandler(sendSms)
+      // send sms
+      val sendSms = SmsSender(context, binding)
+      sendSmsChannel.setMethodCallHandler(sendSms)
 
-    // sms state
-    val smsState = SmsStateHandler(context, binding)
-    smsStatusChannel.setStreamHandler(smsState)
+      // sms state
+      val smsState = SmsStateHandler(context, binding)
+      smsStatusChannel.setStreamHandler(smsState)
 
-    // remove sms
-    val smsRemover = SmsRemover(context, binding)
-    removeSmsChannel.setMethodCallHandler(smsRemover)
+      // remove sms
+      val smsRemover = SmsRemover(context, binding)
+      removeSmsChannel.setMethodCallHandler(smsRemover)
 
-    // sms query
-    val smsQuery = SmsQuery(context, binding)
-    querySmsChannel.setMethodCallHandler(smsQuery)
+      // sms query
+      val smsQuery = SmsQuery(context, binding)
+      querySmsChannel.setMethodCallHandler(smsQuery)
 
-    // contact query
-    val contactQuery = ContactQuery(context, binding)
-    queryContactChannel.setMethodCallHandler(contactQuery)
+      // contact query
+      val contactQuery = ContactQuery(context, binding)
+      queryContactChannel.setMethodCallHandler(contactQuery)
 
-    // contact photo query
-    val contactPhotoQuery = ContactPhotoQuery(context, binding)
-    queryContactPhotoChannel.setMethodCallHandler(contactPhotoQuery)
+      // contact photo query
+      val contactPhotoQuery = ContactPhotoQuery(context, binding)
+      queryContactPhotoChannel.setMethodCallHandler(contactPhotoQuery)
 
-    // user profile
-    val userProfile = UserProfileProvider(context, binding)
-    userProfileChannel.setMethodCallHandler(userProfile)
+      // user profile
+      val userProfile = UserProfileProvider(context, binding)
+      userProfileChannel.setMethodCallHandler(userProfile)
 
-    // simCard
-    val simCard = SimCardsProvider(context, binding)
-    simCardChannel.setMethodCallHandler(simCard)
+      // simCard
+      val simCard = SimCardsProvider(context, binding)
+      simCardChannel.setMethodCallHandler(simCard)
+    } catch(e: Exception) {
+      Log.e("flutter/SmsAdvanced", "Error attaching to activity: $e ${e.stackTrace}")
+    }
+    Log.d("flutter/SmsAdvanced", "Attached to activity")
   }
 
   override fun onDetachedFromActivityForConfigChanges() {

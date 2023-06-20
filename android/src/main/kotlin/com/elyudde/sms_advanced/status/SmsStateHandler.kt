@@ -83,7 +83,7 @@ class SmsStateHandler(val context: Context, private val binding: ActivityPluginB
     }
 
     init {
-        permissions = Permissions(context, binding.activity as FlutterFragmentActivity)
+        permissions = Permissions(context, binding.activity )
         binding.addRequestPermissionsResultListener(this)
     }
 }
