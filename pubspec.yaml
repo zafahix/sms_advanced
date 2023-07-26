@@ -33,7 +33,7 @@ flutter:
         package: com.elyudde.sms_advanced
         pluginClass: SmsAdvancedPlugin
       ios:
-        pluginClass: UssdAdvancedPlugin
+        pluginClass: SmsAdvancedPlugin
       web:
         pluginClass: SmsAdvancedPlugin
         fileName: sms_advanced_web.dart
