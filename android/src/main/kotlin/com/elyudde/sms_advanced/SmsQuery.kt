@@ -138,19 +138,21 @@ internal class SmsQueryHandler(
 
             cursor.columnNames.forEach {
                 if (cursor.isNull(cursor.getColumnIndex(it))) {
-//                    Log.d("SMS", "column name: $it is null")
-                } else if (!res.has(it) && !arrayOf("_id", "address", "body", "content-type").contains(it)) {
+                } else if (!res.has(it) && !arrayOf(
+                        "_id",
+                        "address",
+                        "body",
+                        "content-type",
+                        "date"
+                    ).contains(it)
+                ) {
                     if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_BLOB) {
-//                    Log.d("SMS", "column name: $it is blob, value: ${cursor.getBlob(cursor.getColumnIndex(it))}")
 //                        res.put(it, cursor.getBlob(cursor.getColumnIndex(it)))
                     } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_FLOAT) {
-//                    Log.d("SMS", "column name: $it is float, value:  ${cursor.getFloat(cursor.getColumnIndex(it))}")
                         res.put(it, cursor.getFloat(cursor.getColumnIndex(it)))
                     } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_INTEGER) {
-//                    Log.d("SMS", "column name: $it is integer, value:  ${cursor.getInt(cursor.getColumnIndex(it))}")
                         res.put(it, cursor.getInt(cursor.getColumnIndex(it)))
                     } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_STRING) {
-//                    Log.d("SMS", "column name: $it is string, value:  ${cursor.getString(cursor.getColumnIndex(it))}")
                         res.put(it, cursor.getString(cursor.getColumnIndex(it)))
                     }
                 }
@@ -189,6 +191,7 @@ internal class SmsQueryHandler(
         result.success(list)
     }
 
+    @SuppressLint("Range")
     private fun readThreadsOnly() {
         // List threads only
         val list = ArrayList<JSONObject>()
@@ -211,17 +214,30 @@ internal class SmsQueryHandler(
         }
         do {
             val res = JSONObject()
+
+            val isMms = !cursor.isNull(cursor.getColumnIndex("ct_t"))
+
             for (idx in 0 until cursor.columnCount) {
                 try {
                     if (cursor.getColumnName(idx) == "address" || cursor.getColumnName(idx) == "body") {
                         res.put(cursor.getColumnName(idx), cursor.getString(idx))
                     } else if (cursor.getColumnName(idx) == "date" || cursor.getColumnName(idx) == "date_sent") {
-                        res.put(cursor.getColumnName(idx), cursor.getLong(idx))
+                        var timestamp = cursor.getLong(idx)
+                        if (isMms) {
+                            timestamp *= 1000
+                        }
+                        res.put(cursor.getColumnName(idx), timestamp)
                     } else {
                         res.put(cursor.getColumnName(idx), cursor.getInt(idx))
                     }
                 } catch (e: JSONException) {
                     e.printStackTrace()
+                }
+            }
+            if (isMms) {
+                val address = getThreadAddress(cursor.getInt(cursor.getColumnIndex("thread_id")))
+                if (address != null) {
+                    res.put("address", address)
                 }
             }
             if (mStart > 0) {
@@ -236,30 +252,6 @@ internal class SmsQueryHandler(
         cursor.close()
         result.success(list)
     }
-
-//    private fun readSms(id: Int): JSONObject? {
-//        val selectionPart = "_id=$id"
-//        val uri = Uri.parse("content://sms")
-//        val cursor: Cursor = context.contentResolver.query(
-//            uri, null,
-//            selectionPart, null, null
-//        ) ?: return null
-//        val res = JSONObject()
-//        for (idx in 0 until cursor.columnCount) {
-//            try {
-//                if (cursor.getColumnName(idx) == "address" || cursor.getColumnName(idx) == "body") {
-//                    res.put(cursor.getColumnName(idx), cursor.getString(idx))
-//                } else if (cursor.getColumnName(idx) == "date" || cursor.getColumnName(idx) == "date_sent") {
-//                    res.put(cursor.getColumnName(idx), cursor.getLong(idx))
-//                } else {
-//                    res.put(cursor.getColumnName(idx), cursor.getInt(idx))
-//                }
-//            } catch (e: JSONException) {
-//                e.printStackTrace()
-//            }
-//        }
-//        return res
-//    }
 
     @SuppressLint("Range")
     private fun readMms(id: Int): JSONObject? {
@@ -297,19 +289,21 @@ internal class SmsQueryHandler(
 
                     cursor.columnNames.forEach {
                         if (cursor.isNull(cursor.getColumnIndex(it))) {
-//                    Log.d("SMS", "column name: $it is null")
-                        } else if (!res.has(it) && !arrayOf("_id", "address", "body", "content-type").contains(it)) {
+                        } else if (!res.has(it) && !arrayOf(
+                                "_id",
+                                "address",
+                                "body",
+                                "content-type",
+                                "date"
+                            ).contains(it)
+                        ) {
                             if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_BLOB) {
-//                    Log.d("SMS", "column name: $it is blob, value: ${cursor.getBlob(cursor.getColumnIndex(it))}")
                                 res.put(it, cursor.getBlob(cursor.getColumnIndex(it)))
                             } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_FLOAT) {
-//                    Log.d("SMS", "column name: $it is float, value:  ${cursor.getFloat(cursor.getColumnIndex(it))}")
                                 res.put(it, cursor.getFloat(cursor.getColumnIndex(it)))
                             } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_INTEGER) {
-//                    Log.d("SMS", "column name: $it is integer, value:  ${cursor.getInt(cursor.getColumnIndex(it))}")
                                 res.put(it, cursor.getInt(cursor.getColumnIndex(it)))
                             } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_STRING) {
-//                    Log.d("SMS", "column name: $it is string, value:  ${cursor.getString(cursor.getColumnIndex(it))}")
                                 res.put(it, cursor.getString(cursor.getColumnIndex(it)))
                             }
                         }
@@ -348,8 +342,34 @@ internal class SmsQueryHandler(
     }
 
     private fun getMmsAddress(id: Int): String? {
+        return getMmsAddress(id, null)
+    }
+
+    @SuppressLint("Range")
+    private fun getMmsAddress(msgId: Int?, threadId: Int?): String? {
+        var id = msgId
+        if (id == null && threadId == null) {
+            return null
+        }
+        if (id == null && threadId != null) {
+            // Obtain the message id first
+            val cursor =
+                context.contentResolver.query(
+                    Uri.parse("content://mms"),
+                    arrayOf("*"),
+                    "thread_id = ?",
+                    arrayOf(threadId.toString()),
+                    "date DESC"
+                ) ?: return null
+            if (!cursor.moveToFirst()) {
+                cursor.close()
+                return null
+            }
+            id = cursor.getInt(cursor.getColumnIndex("_id"))
+            cursor.close()
+        }
+        val uriStr = MessageFormat.format("content://mms/{0}/addr", id)
         val selectionAdd = "msg_id=$id"
-        val uriStr: String = MessageFormat.format("content://mms/{0}/addr", id)
         val uriAddress = Uri.parse(uriStr)
         val cAdd: Cursor = context.contentResolver.query(
             uriAddress, null,
@@ -375,6 +395,25 @@ internal class SmsQueryHandler(
         }
         cAdd.close()
         return name
+    }
+
+    @SuppressLint("Range")
+    private fun getThreadAddress(threadId: Int?): String? {
+        val cursor =
+            context.contentResolver.query(
+                Uri.parse("content://sms"),
+                arrayOf("*"),
+                "thread_id = ?",
+                arrayOf(threadId.toString()),
+                "date DESC"
+            ) ?: return null
+        if (!cursor.moveToFirst()) {
+            cursor.close()
+            return null
+        }
+        val address = cursor.getString(cursor.getColumnIndex("address"))
+        cursor.close()
+        return address
     }
 
 //    @SuppressLint("Range")
