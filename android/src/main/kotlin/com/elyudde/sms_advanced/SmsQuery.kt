@@ -157,11 +157,9 @@ internal class SmsQueryHandler(
         list.addAll(mmsList)
 
 //        // Sort and limit
-        list.forEach { print("list: ${it.getLong("date")}") }
-
         list.sortByDescending { it.getLong("date") }
 
-        if (mStart > 0) {
+        if (mStart > 0 && list.size > mStart) {
             list = ArrayList(list.subList(mStart, list.size))
         }
         if (mCount > 0 && mCount < list.size) {
