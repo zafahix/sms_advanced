@@ -150,10 +150,10 @@ internal class SmsQueryHandler(
 
     private fun readSingleThread() {
         var list = ArrayList<JSONObject>()
-//        val smsList = readThreadSms()
+        val smsList = readThreadSms()
         val mmsList = readThreadMms()
 
-//        list.addAll(smsList)
+        list.addAll(smsList)
         list.addAll(mmsList)
 
 //        // Sort and limit
