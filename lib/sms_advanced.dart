@@ -21,6 +21,8 @@ enum SmsMessageKind {
   Draft,
 }
 
+enum SmsType { sms, mms }
+
 /// A SMS Message
 ///
 /// Used to send message or used to read message.
@@ -35,8 +37,10 @@ class SmsMessage implements Comparable<SmsMessage> {
   DateTime? _dateSent;
   SmsMessageKind? _kind;
   SmsMessageState _state = SmsMessageState.None;
-  final StreamController<SmsMessageState> _stateStreamController =
-      StreamController<SmsMessageState>();
+  SmsType _type = SmsType.sms;
+  String? _contentType;
+
+  final StreamController<SmsMessageState> _stateStreamController = StreamController<SmsMessageState>();
 
   SmsMessage(this._address, this._body,
       {int? id,
@@ -45,7 +49,10 @@ class SmsMessage implements Comparable<SmsMessage> {
       bool? read,
       DateTime? date,
       DateTime? dateSent,
-      SmsMessageKind? kind}) {
+      SmsMessageKind? kind,
+      SmsType? type,
+      Uint8List? image,
+      String? contentType}) {
     _id = id;
     _threadId = threadId;
     _sim = sim;
@@ -53,6 +60,8 @@ class SmsMessage implements Comparable<SmsMessage> {
     _date = date;
     _dateSent = dateSent;
     _kind = kind;
+    _type = type ?? SmsType.sms;
+    _contentType = contentType;
   }
 
   /// Read message from JSON
@@ -87,6 +96,12 @@ class SmsMessage implements Comparable<SmsMessage> {
     if (data.containsKey("date_sent")) {
       _dateSent = DateTime.fromMillisecondsSinceEpoch(data["date_sent"]);
     }
+    if (data.containsKey("sms_mms")) {
+      _type = data["sms_mms"] == "sms" ? SmsType.sms : SmsType.mms;
+    }
+    if (data.containsKey("content-type")) {
+      _contentType = data["content-type"];
+    }
   }
 
   /// Convert SMS to map
@@ -116,8 +131,17 @@ class SmsMessage implements Comparable<SmsMessage> {
     if (_dateSent != null) {
       res["dateSent"] = _dateSent!.millisecondsSinceEpoch;
     }
+    if (_kind != null) {
+      res["kind"] = _kind;
+    }
+    res["sms_mms"] = _type == SmsType.sms ? "sms" : "mms";
+    if (_contentType != null) {
+      res["content-type"] = _contentType;
+    }
     return res;
   }
+
+  bool get hasImage => _type == SmsType.mms && _contentType != null && _contentType!.contains("image");
 
   /// Get message id
   int? get id => _id;
@@ -160,6 +184,9 @@ class SmsMessage implements Comparable<SmsMessage> {
   /// Get message state
   SmsMessageState get state => _state;
 
+  String? get contentType => _contentType;
+
+
   set state(SmsMessageState state) {
     if (_state != state) {
       _state = state;
@@ -167,9 +194,11 @@ class SmsMessage implements Comparable<SmsMessage> {
     }
   }
 
+  SmsType get type => _type;
+
   @override
   int compareTo(SmsMessage other) {
-    return other._id! - _id!;
+    return (other._id ?? 0) - (_id ?? 0);
   }
 }
 
@@ -267,8 +296,7 @@ class SmsReceiver {
 
   factory SmsReceiver() {
     if (_instance == null) {
-      const EventChannel eventChannel =
-          EventChannel("plugins.elyudde.com/recvSMS", JSONMethodCodec());
+      const EventChannel eventChannel = EventChannel("plugins.elyudde.com/recvSMS", JSONMethodCodec());
       _instance = SmsReceiver._private(eventChannel);
     }
     return _instance!;
@@ -294,15 +322,12 @@ class SmsSender {
   final EventChannel _stateChannel;
   late Map<int, SmsMessage> _sentMessages;
   int _sentId = 0;
-  final StreamController<SmsMessage?> _deliveredStreamController =
-      StreamController<SmsMessage?>();
+  final StreamController<SmsMessage?> _deliveredStreamController = StreamController<SmsMessage?>();
 
   factory SmsSender() {
     if (_instance == null) {
-      const MethodChannel methodChannel =
-          MethodChannel("plugins.elyudde.com/sendSMS", JSONMethodCodec());
-      const EventChannel stateChannel =
-          EventChannel("plugins.elyudde.com/statusSMS", JSONMethodCodec());
+      const MethodChannel methodChannel = MethodChannel("plugins.elyudde.com/sendSMS", JSONMethodCodec());
+      const EventChannel stateChannel = EventChannel("plugins.elyudde.com/statusSMS", JSONMethodCodec());
 
       _instance = SmsSender._private(methodChannel, stateChannel);
     }
@@ -396,8 +421,7 @@ class SmsQuery {
 
   factory SmsQuery() {
     if (_instance == null) {
-      const MethodChannel methodChannel =
-          MethodChannel("plugins.elyudde.com/querySMS", JSONMethodCodec());
+      const MethodChannel methodChannel = MethodChannel("plugins.elyudde.com/querySMS", JSONMethodCodec());
       _instance = SmsQuery._private(methodChannel);
     }
     return _instance!;
@@ -407,11 +431,7 @@ class SmsQuery {
 
   /// Wrapper for query only one kind
   Future<List<SmsMessage>> _querySmsWrapper(
-      {int? start,
-      int? count,
-      String? address,
-      int? threadId,
-      SmsQueryKind kind = SmsQueryKind.Inbox}) async {
+      {int? start, int? count, String? address, int? threadId, SmsQueryKind kind = SmsQueryKind.Inbox}) async {
     Map arguments = {};
     if (start != null && start >= 0) {
       arguments["start"] = start;
@@ -487,13 +507,13 @@ class SmsQuery {
 
   /// Get all SMS
   Future<List<SmsMessage>> get getAllSms async {
-    return querySms(
-        kinds: [SmsQueryKind.Sent, SmsQueryKind.Inbox, SmsQueryKind.Draft]);
+    return querySms(kinds: [SmsQueryKind.Sent, SmsQueryKind.Inbox, SmsQueryKind.Draft]);
   }
 
   /// Get all threads
   Future<List<SmsThread>> get getAllThreads async {
     List<SmsMessage> messages = await getAllSms;
+
     Map<int?, List<SmsMessage>> filtered = {};
     for (var msg in messages) {
       if (!filtered.containsKey(msg.threadId)) {
@@ -508,6 +528,37 @@ class SmsQuery {
       threads.add(thread);
     }
     return threads;
+  }
+}
+
+class MmsReader {
+  static MmsReader? _instance;
+  final MethodChannel _channel;
+
+  factory MmsReader() {
+    if (_instance == null) {
+      const MethodChannel methodChannel = MethodChannel("plugins.elyudde.com/readMms", StandardMethodCodec());
+      _instance = MmsReader._private(methodChannel);
+    }
+    return _instance!;
+  }
+
+  MmsReader._private(this._channel);
+
+  /// Read a single MMS
+  Future<SmsMessage?> readMms(int id) async {
+    Map arguments = {};
+    arguments["mms_id"] = id;
+    return await _channel.invokeMethod('readMms', arguments).then((dynamic val) {
+      SmsMessage msg = SmsMessage.fromJson(val);
+      return msg;
+    });
+  }
+
+  /// Read a single MMS
+  Future<Uint8List?> readMmsImage(int id) async {
+    print("Reading mms image with id: $id");
+    return await _channel.invokeMethod('readMmsImage', {"mms_id": id});
   }
 }
 
@@ -526,10 +577,7 @@ class SimCard {
   String? imei;
   SimCardState? state;
 
-  SimCard(
-      {required int this.slot,
-      required String this.imei,
-      this.state = SimCardState.Unknown});
+  SimCard({required int this.slot, required String this.imei, this.state = SimCardState.Unknown});
 
   SimCard.fromJson(Map map) {
     if (map.containsKey('slot')) {
@@ -588,8 +636,7 @@ class SimCardsProvider {
 
   factory SimCardsProvider() {
     if (_instance == null) {
-      const MethodChannel methodChannel =
-          MethodChannel("plugins.elyudde.com/simCards", JSONMethodCodec());
+      const MethodChannel methodChannel = MethodChannel("plugins.elyudde.com/simCards", JSONMethodCodec());
       _instance = SimCardsProvider._private(methodChannel);
     }
     return _instance!;

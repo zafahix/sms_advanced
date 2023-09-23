@@ -138,7 +138,7 @@ class ContactQuery {
 
   Future<Contact?> queryContact(String? address) async {
     if (address == null) {
-      throw ("address is null");
+      return null;
     }
     if (queried.containsKey(address) && queried[address] != null) {
       return queried[address];
