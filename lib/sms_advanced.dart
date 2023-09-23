@@ -86,11 +86,12 @@ class SmsMessage implements Comparable<SmsMessage> {
     if (data.containsKey("read")) {
       _read = (data["read"] as int?) == 1;
     }
-    print("TYpe: ${data["type"]}");
     if (data.containsKey("kind")) {
       _kind = data["kind"];
     } else if (data.containsKey("type")){
       _kind = data["type"] == 1 ? SmsMessageKind.Received : SmsMessageKind.Sent;
+    } else if (data.containsKey("m_type")){
+      _kind = data["m_type"] == 128 ? SmsMessageKind.Sent : SmsMessageKind.Received;
     }
     if (data.containsKey("date")) {
       _date = DateTime.fromMillisecondsSinceEpoch(data["date"]);
@@ -543,7 +544,6 @@ class MmsReader {
 
   /// Read a single MMS
   Future<Uint8List?> readMmsImage(int id) async {
-    print("Reading mms image with id: $id");
     return await _channel.invokeMethod('readMmsImage', {"mms_id": id});
   }
 }

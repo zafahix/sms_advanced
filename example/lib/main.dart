@@ -85,9 +85,6 @@ class _ListSmsPageState extends State<ListSmsPage> {
     )
         .then((value) {
       messages = value;
-      messages.forEach((element) {
-        print((element.date?.toIso8601String() ?? "No date") + " " + (element.type.toString()));
-      });
       setState(() {});
     });
   }
@@ -107,7 +104,7 @@ class _ListSmsPageState extends State<ListSmsPage> {
                 minVerticalPadding: 8,
                 minLeadingWidth: 4,
                 title: Text(messages[index].body ?? 'empty'),
-                subtitle: Text(messages[index].address ?? 'empty'),
+                subtitle: Text(messages[index].kind.toString() + " " + messages[index].contentType.toString()),
               ),
               if (msg.hasImage)
                 FutureBuilder(

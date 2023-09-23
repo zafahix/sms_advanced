@@ -121,31 +121,13 @@ internal class SmsQueryHandler(
             res.put("sms_mms", "mms")
 
             val id = cursor.getInt(cursor.getColumnIndex("_id"))
-            Log.d("SMS", "===============================")
-            cursor.columnNames.forEach {
-                if (cursor.isNull(cursor.getColumnIndex(it))) {
-                    Log.d("SMS", "column name: $it is null")
-                } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_BLOB) {
-                    Log.d("SMS", "column name: $it is blob, value: ${cursor.getBlob(cursor.getColumnIndex(it))}")
-                    res.put(it, cursor.getBlob(cursor.getColumnIndex(it)))
-                } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_FLOAT) {
-                    Log.d("SMS", "column name: $it is float, value:  ${cursor.getFloat(cursor.getColumnIndex(it))}")
-                    res.put(it, cursor.getFloat(cursor.getColumnIndex(it)))
-                } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_INTEGER) {
-                    Log.d("SMS", "column name: $it is integer, value:  ${cursor.getInt(cursor.getColumnIndex(it))}")
-                    res.put(it, cursor.getInt(cursor.getColumnIndex(it)))
-                } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_STRING) {
-                    Log.d("SMS", "column name: $it is string, value:  ${cursor.getString(cursor.getColumnIndex(it))}")
-                    res.put(it, cursor.getString(cursor.getColumnIndex(it)))
-                }
-            }
 
             val mmsData = readMms(id)
             res.put("_id", id)
+
             if (mmsData != null) {
                 // Merge
                 for (key in mmsData.keys()) {
-                    print("key: $key, value: ${mmsData.get(key)}")
                     res.put(key, mmsData.get(key))
                 }
             }
@@ -153,6 +135,26 @@ internal class SmsQueryHandler(
 
             res.put("date", date)
             res.put("date_sent", date)
+
+            cursor.columnNames.forEach {
+                if (cursor.isNull(cursor.getColumnIndex(it))) {
+//                    Log.d("SMS", "column name: $it is null")
+                } else if (!res.has(it) && !arrayOf("_id", "address", "body", "content-type").contains(it)) {
+                    if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_BLOB) {
+//                    Log.d("SMS", "column name: $it is blob, value: ${cursor.getBlob(cursor.getColumnIndex(it))}")
+//                        res.put(it, cursor.getBlob(cursor.getColumnIndex(it)))
+                    } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_FLOAT) {
+//                    Log.d("SMS", "column name: $it is float, value:  ${cursor.getFloat(cursor.getColumnIndex(it))}")
+                        res.put(it, cursor.getFloat(cursor.getColumnIndex(it)))
+                    } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_INTEGER) {
+//                    Log.d("SMS", "column name: $it is integer, value:  ${cursor.getInt(cursor.getColumnIndex(it))}")
+                        res.put(it, cursor.getInt(cursor.getColumnIndex(it)))
+                    } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_STRING) {
+//                    Log.d("SMS", "column name: $it is string, value:  ${cursor.getString(cursor.getColumnIndex(it))}")
+                        res.put(it, cursor.getString(cursor.getColumnIndex(it)))
+                    }
+                }
+            }
 
             if (start > 0) {
                 start--
@@ -173,14 +175,7 @@ internal class SmsQueryHandler(
         val mmsList = readThreadMms()
 
         list.addAll(smsList)
-        smsList.forEach {
-            Log.d("SMS", "date sms: ${it.getLong("date")}")
-        }
         list.addAll(mmsList)
-
-        mmsList.forEach {
-            Log.d("SMS", "date mms: ${it.getLong("date")}")
-        }
 
 //        // Sort and limit
         list.sortByDescending { it.getLong("date") }
@@ -190,9 +185,6 @@ internal class SmsQueryHandler(
         }
         if (mCount > 0 && mCount < list.size) {
             list = ArrayList(list.subList(0, mCount))
-        }
-        list.forEach {
-            Log.d("SMS", "date after sort: ${it.getLong("date")} ${it.get("sms_mms")}")
         }
         result.success(list)
     }
@@ -289,20 +281,6 @@ internal class SmsQueryHandler(
                 do {
                     val partId = cur.getString(cur.getColumnIndex("_id"))
                     val contentType = cur.getString(cur.getColumnIndex("ct"))
-                    Log.d("SMS", "===============================")
-                    cur.columnNames.forEach {
-                        if (cur.isNull(cur.getColumnIndex(it))) {
-                            Log.d("SMS", "column name: $it is null")
-                        } else if (cur.getType(cur.getColumnIndex(it)) == Cursor.FIELD_TYPE_BLOB) {
-                            Log.d("SMS", "column name: $it is blob, value: ${cur.getBlob(cur.getColumnIndex(it))}")
-                        } else if (cur.getType(cur.getColumnIndex(it)) == Cursor.FIELD_TYPE_FLOAT) {
-                            Log.d("SMS", "column name: $it is float, value:  ${cur.getFloat(cur.getColumnIndex(it))}")
-                        } else if (cur.getType(cur.getColumnIndex(it)) == Cursor.FIELD_TYPE_INTEGER) {
-                            Log.d("SMS", "column name: $it is integer, value:  ${cur.getInt(cur.getColumnIndex(it))}")
-                        } else if (cur.getType(cur.getColumnIndex(it)) == Cursor.FIELD_TYPE_STRING) {
-                            Log.d("SMS", "column name: $it is string, value:  ${cur.getString(cur.getColumnIndex(it))}")
-                        }
-                    }
 
                     res.put("content-type", contentType)
 
@@ -315,6 +293,26 @@ internal class SmsQueryHandler(
                             cur.getString(cur.getColumnIndex("text"))
                         }
                         res.put("body", body)
+                    }
+
+                    cursor.columnNames.forEach {
+                        if (cursor.isNull(cursor.getColumnIndex(it))) {
+//                    Log.d("SMS", "column name: $it is null")
+                        } else if (!res.has(it) && !arrayOf("_id", "address", "body", "content-type").contains(it)) {
+                            if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_BLOB) {
+//                    Log.d("SMS", "column name: $it is blob, value: ${cursor.getBlob(cursor.getColumnIndex(it))}")
+                                res.put(it, cursor.getBlob(cursor.getColumnIndex(it)))
+                            } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_FLOAT) {
+//                    Log.d("SMS", "column name: $it is float, value:  ${cursor.getFloat(cursor.getColumnIndex(it))}")
+                                res.put(it, cursor.getFloat(cursor.getColumnIndex(it)))
+                            } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_INTEGER) {
+//                    Log.d("SMS", "column name: $it is integer, value:  ${cursor.getInt(cursor.getColumnIndex(it))}")
+                                res.put(it, cursor.getInt(cursor.getColumnIndex(it)))
+                            } else if (cursor.getType(cursor.getColumnIndex(it)) == Cursor.FIELD_TYPE_STRING) {
+//                    Log.d("SMS", "column name: $it is string, value:  ${cursor.getString(cursor.getColumnIndex(it))}")
+                                res.put(it, cursor.getString(cursor.getColumnIndex(it)))
+                            }
+                        }
                     }
                 } while (cur.moveToNext())
             }
