@@ -487,7 +487,7 @@ class SmsQuery {
       ));
     }
     if (sort == true) {
-      result.sort((a, b) => a.compareTo(b));
+      result.sort((a, b) => b.date!.compareTo(a.date!));
     }
     return (result);
   }

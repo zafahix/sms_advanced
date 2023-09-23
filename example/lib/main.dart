@@ -79,8 +79,15 @@ class _ListSmsPageState extends State<ListSmsPage> {
   @override
   void initState() {
     super.initState();
-    query.querySms(threadId: widget.thread.threadId,).then((value) {
+    query
+        .querySms(
+      threadId: widget.thread.threadId,
+    )
+        .then((value) {
       messages = value;
+      messages.forEach((element) {
+        print((element.date?.toIso8601String() ?? "No date") + " " + (element.type.toString()));
+      });
       setState(() {});
     });
   }
@@ -100,16 +107,19 @@ class _ListSmsPageState extends State<ListSmsPage> {
                 minVerticalPadding: 8,
                 minLeadingWidth: 4,
                 title: Text(messages[index].body ?? 'empty'),
-                subtitle: Text(messages[index].type.toString() + ' ' + messages[index].id.toString()),
+                subtitle: Text(messages[index].date?.toIso8601String() ?? "No date"),
               ),
-              const Divider(),
               if (msg.hasImage)
-                FutureBuilder(future: mmsReader.readMmsImage(msg.id!), builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Image.memory(snapshot.data as Uint8List);
-                  }
-                  return const SizedBox();
-                },)
+                FutureBuilder(
+                  future: mmsReader.readMmsImage(msg.id!),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return Image.memory(snapshot.data as Uint8List);
+                    }
+                    return const SizedBox();
+                  },
+                ),
+              const Divider(),
             ],
           );
         },

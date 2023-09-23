@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
 import com.elyudde.sms_advanced.permisions.Permissions
+import io.flutter.Log
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -20,6 +21,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.text.MessageFormat
 import java.util.*
+import kotlin.collections.ArrayList
 
 
 /**
@@ -98,8 +100,8 @@ internal class SmsQueryHandler(
 
     @SuppressLint("Range")
     private fun readThreadMms(): ArrayList<JSONObject> {
-        var start = 0+this.mStart
-        var count = 0+this.mCount
+        var start = 0 + this.mStart
+        var count = 0 + this.mCount
         // List threads only
         val list = ArrayList<JSONObject>()
         val cursor =
@@ -129,7 +131,6 @@ internal class SmsQueryHandler(
                     res.put(key, mmsData.get(key))
                 }
             }
-
             val date = cursor.getLong(cursor.getColumnIndex("date")) * 1000
 
             res.put("date", date)
@@ -149,12 +150,19 @@ internal class SmsQueryHandler(
     }
 
     private fun readSingleThread() {
-        var list = ArrayList<JSONObject>()
+        var list: ArrayList<JSONObject> = ArrayList()
         val smsList = readThreadSms()
         val mmsList = readThreadMms()
 
         list.addAll(smsList)
+        smsList.forEach {
+            Log.d("SMS", "date sms: ${it.getLong("date")}")
+        }
         list.addAll(mmsList)
+
+        mmsList.forEach {
+            Log.d("SMS", "date mms: ${it.getLong("date")}")
+        }
 
 //        // Sort and limit
         list.sortByDescending { it.getLong("date") }
@@ -164,6 +172,9 @@ internal class SmsQueryHandler(
         }
         if (mCount > 0 && mCount < list.size) {
             list = ArrayList(list.subList(0, mCount))
+        }
+        list.forEach {
+            Log.d("SMS", "date after sort: ${it.getLong("date")} ${it.get("sms_mms")}")
         }
         result.success(list)
     }
