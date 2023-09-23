@@ -239,6 +239,7 @@ internal class SmsQueryHandler(
                 if (address != null) {
                     res.put("address", address)
                 }
+                res.put("content-type", cursor.getString(cursor.getColumnIndex("ct_t")))
             }
             if (mStart > 0) {
                 mStart--

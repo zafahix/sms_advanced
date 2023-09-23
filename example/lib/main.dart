@@ -50,7 +50,7 @@ class _MyAppState extends State<MyApp> {
                     },
                     minVerticalPadding: 8,
                     minLeadingWidth: 4,
-                    title: Text(threads[index].messages.last.body ?? 'empty'),
+                    title: Text(threads[index].messages.last.body ?? threads[index].messages.first.contentType ?? 'empty'),
                     subtitle: Text(threads[index].contact?.address ?? 'empty'),
                   ),
                   const Divider()
