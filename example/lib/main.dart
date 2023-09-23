@@ -107,7 +107,7 @@ class _ListSmsPageState extends State<ListSmsPage> {
                 minVerticalPadding: 8,
                 minLeadingWidth: 4,
                 title: Text(messages[index].body ?? 'empty'),
-                subtitle: Text(messages[index].date?.toIso8601String() ?? "No date"),
+                subtitle: Text(messages[index].kind.toString()),
               ),
               if (msg.hasImage)
                 FutureBuilder(

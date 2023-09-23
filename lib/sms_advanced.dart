@@ -18,7 +18,6 @@ enum SmsMessageState {
 enum SmsMessageKind {
   Sent,
   Received,
-  Draft,
 }
 
 enum SmsType { sms, mms }
@@ -87,8 +86,11 @@ class SmsMessage implements Comparable<SmsMessage> {
     if (data.containsKey("read")) {
       _read = (data["read"] as int?) == 1;
     }
+    print("TYpe: ${data["type"]}");
     if (data.containsKey("kind")) {
       _kind = data["kind"];
+    } else if (data.containsKey("type")){
+      _kind = data["type"] == 1 ? SmsMessageKind.Received : SmsMessageKind.Sent;
     }
     if (data.containsKey("date")) {
       _date = DateTime.fromMillisecondsSinceEpoch(data["date"]);
@@ -431,7 +433,7 @@ class SmsQuery {
 
   /// Wrapper for query only one kind
   Future<List<SmsMessage>> _querySmsWrapper(
-      {int? start, int? count, String? address, int? threadId, SmsQueryKind kind = SmsQueryKind.Inbox}) async {
+      {int? start, int? count, String? address, int? threadId}) async {
     Map arguments = {};
     if (start != null && start >= 0) {
       arguments["start"] = start;
@@ -445,23 +447,11 @@ class SmsQuery {
     if (threadId != null && threadId >= 0) {
       arguments["thread_id"] = threadId;
     }
-    String function;
-    SmsMessageKind msgKind;
-    if (kind == SmsQueryKind.Inbox) {
-      function = "getInbox";
-      msgKind = SmsMessageKind.Received;
-    } else if (kind == SmsQueryKind.Sent) {
-      function = "getSent";
-      msgKind = SmsMessageKind.Sent;
-    } else {
-      function = "getDraft";
-      msgKind = SmsMessageKind.Draft;
-    }
-    return await _channel.invokeMethod(function, arguments).then((dynamic val) {
+
+    return await _channel.invokeMethod("querySms", arguments).then((dynamic val) {
       List<SmsMessage> list = [];
       for (Map data in val) {
         SmsMessage msg = SmsMessage.fromJson(data);
-        msg.kind = msgKind;
         list.add(msg);
       }
       return list;
@@ -474,18 +464,14 @@ class SmsQuery {
       int? count,
       String? address,
       int? threadId,
-      List<SmsQueryKind> kinds = const [SmsQueryKind.Inbox],
       bool sort = true}) async {
     List<SmsMessage> result = [];
-    for (var kind in kinds) {
       result.addAll(await _querySmsWrapper(
         start: start,
         count: count,
         address: address,
         threadId: threadId,
-        kind: kind,
       ));
-    }
     if (sort == true) {
       result.sort((a, b) => b.date!.compareTo(a.date!));
     }
@@ -497,7 +483,7 @@ class SmsQuery {
       {List<SmsQueryKind> kinds = const [SmsQueryKind.Inbox]}) async {
     List<SmsThread> threads = <SmsThread>[];
     for (var id in threadsId) {
-      final messages = await querySms(threadId: id, kinds: kinds);
+      final messages = await querySms(threadId: id);
       final thread = SmsThread.fromMessages(messages);
       await thread.findContact();
       threads.add(thread);
@@ -507,7 +493,7 @@ class SmsQuery {
 
   /// Get all SMS
   Future<List<SmsMessage>> get getAllSms async {
-    return querySms(kinds: [SmsQueryKind.Sent, SmsQueryKind.Inbox, SmsQueryKind.Draft]);
+    return querySms();
   }
 
   /// Get all threads

@@ -21,7 +21,6 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.text.MessageFormat
 import java.util.*
-import kotlin.collections.ArrayList
 
 
 /**
@@ -262,7 +261,7 @@ internal class SmsQueryHandler(
         val res = JSONObject()
 
         cursor.use { cur ->
-            val address = getMmsAddress(id)
+            val address = getMMSAddress(id)
             if (address != null) {
                 res.put("address", address)
             }
@@ -273,6 +272,7 @@ internal class SmsQueryHandler(
                     val type = cur.getString(cur.getColumnIndex("ct"))
 
                     res.put("content-type", type)
+                    res.put("type", cur.getInt(cur.getColumnIndex("m_type")))
 
                     if ("text/plain" == type) {
                         val data = cur.getString(cur.getColumnIndex("_data"))
@@ -317,34 +317,30 @@ internal class SmsQueryHandler(
         return sb.toString()
     }
 
-    private fun getMmsAddress(id: Int): String? {
-        val selectionAdd = "msg_id=$id"
-        val uriStr: String = MessageFormat.format("content://mms/{0}/addr", id)
+    @SuppressLint("Range")
+    fun getMMSAddress(id: Int): String? {
+        val addrSelection = "type=137 AND msg_id=$id"
+        val uriStr = MessageFormat.format("content://mms/{0}/addr", id)
         val uriAddress = Uri.parse(uriStr)
-        val cAdd: Cursor = context.contentResolver.query(
-            uriAddress, null,
-            selectionAdd, null, null
-        ) ?: return null
-        var name: String? = null
-        if (cAdd.moveToFirst()) {
+        val columns = arrayOf("address")
+        val cursor = context.contentResolver.query(
+            uriAddress, columns,
+            addrSelection, null, null
+        )
+        var address: String? = ""
+        var value: String?
+        if (cursor!!.moveToFirst()) {
             do {
-                val addIndx = cAdd.getColumnIndex("address")
-                if (addIndx < 0) return null
-                val number = cAdd.getString(addIndx)
-                if (number != null) {
-                    try {
-                        number.replace("-", "").toLong()
-                        name = number
-                    } catch (nfe: NumberFormatException) {
-                        if (name == null) {
-                            name = number
-                        }
-                    }
+                value = cursor.getString(cursor.getColumnIndex("address"))
+                if (value != null) {
+                    address = value
+                    // Use the first one found if more than one
+                    break
                 }
-            } while (cAdd.moveToNext())
+            } while (cursor.moveToNext())
         }
-        cAdd.close()
-        return name
+        cursor.close()
+        return address
     }
 
     private fun querySms() {
@@ -390,7 +386,6 @@ internal class SmsQuery(val context: Context, private val binding: ActivityPlugi
     MethodCallHandler {
     private val permissions: Permissions = Permissions(context, binding.activity)
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        print("call.method: ${call.method}")
         var start = 0
         var count = -1
         var threadId = -1
