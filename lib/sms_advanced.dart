@@ -146,6 +146,8 @@ class SmsMessage implements Comparable<SmsMessage> {
 
   bool get hasImage => _type == SmsType.mms && _contentType != null && _contentType!.contains("image");
 
+  bool get hasVideo => _type == SmsType.mms && _contentType != null && _contentType!.contains("video");
+
   /// Get message id
   int? get id => _id;
 
@@ -545,6 +547,11 @@ class MmsReader {
   /// Read a single MMS
   Future<Uint8List?> readMmsImage(int id) async {
     return await _channel.invokeMethod('readMmsImage', {"mms_id": id});
+  }
+
+  /// Read a single MMS
+  Future<String?> readMmsBytes(int id) async {
+    return await _channel.invokeMethod('readMmsBytes', {"mms_id": id});
   }
 }
 

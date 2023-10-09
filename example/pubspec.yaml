@@ -24,6 +24,9 @@ dependencies:
 #      url: https://github.com/agentslx/sms_advanced
 #      ref: 367d0e9d50b7956a6b28d4758532b56f2a42ae7b
 
+  video_player: ^2.7.2
+  chewie: ^1.7.1
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.2

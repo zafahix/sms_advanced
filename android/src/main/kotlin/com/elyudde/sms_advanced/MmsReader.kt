@@ -18,6 +18,7 @@ import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -33,10 +34,12 @@ internal class MmsReaderHandler(
     private val context: Context,
     private val result: MethodChannel.Result,
     mmsId: Int,
+    tmpFilePath: String? = null
 ) :
     RequestPermissionsResultListener {
     private val permissionsList = arrayOf(Manifest.permission.READ_SMS)
     private var mmsId = -1
+    private var tmpFilePath: String = ""
     fun handleReadMms(permissions: Permissions) {
         if (permissions.checkAndRequestPermission(permissionsList, Permissions.SEND_SMS_ID_REQ)) {
             readMms()
@@ -46,6 +49,12 @@ internal class MmsReaderHandler(
     fun handleReadMmsImage(permissions: Permissions) {
         if (permissions.checkAndRequestPermission(permissionsList, Permissions.SEND_SMS_ID_REQ)) {
             readMmsImage()
+        }
+    }
+
+    fun handleReadMmsBytes(permissions: Permissions) {
+        if (permissions.checkAndRequestPermission(permissionsList, Permissions.SEND_SMS_ID_REQ)) {
+            readMmsBytes()
         }
     }
 
@@ -148,6 +157,59 @@ internal class MmsReaderHandler(
         return bitmap
     }
 
+    @SuppressLint("Range")
+    private fun readMmsBytes() {
+        val selectionPart = "mid=$mmsId"
+        val uri = Uri.parse("content://mms/part")
+        val cursor: Cursor? = context.contentResolver.query(
+            uri, null,
+            selectionPart, null, null
+        )
+        if (cursor == null) {
+            result.error("#01", "permission denied", null)
+            return
+        }
+
+        // create tmp file if not exist
+
+
+        cursor.use { cur ->
+            if (cur.moveToFirst()) {
+                do {
+                    val partId = cur.getString(cur.getColumnIndex("_id"))
+                    val type = cur.getString(cur.getColumnIndex("ct"))
+                    Log.i("SMS", "type: $type")
+
+                    if (type.contains("video")) {
+                        // change extension of the file to type
+                        tmpFilePath = tmpFilePath.replaceAfterLast(".", type.split("/")[1])
+                        val tmpFile = File(tmpFilePath)
+
+                        val partURI = Uri.parse("content://mms/part/$partId")
+                        var inStream: InputStream? = null
+                        try {
+                            inStream = context.contentResolver.openInputStream(partURI)
+                            val byteData = inStream!!.readBytes()
+                            Log.i("SMS", "byteData: ${byteData.size}")
+                            tmpFile.writeBytes(byteData)
+                        } catch (e: IOException) {
+                            Log.e("SMS", "Error reading image part $mmsId $e ${e.stackTraceToString()}}")
+                        } finally {
+                            if (inStream != null) {
+                                try {
+                                    inStream.close()
+                                } catch (_: IOException) {
+                                }
+                            }
+                        }
+
+                    }
+                } while (cur.moveToNext())
+            }
+        }
+        result.success(tmpFilePath)
+    }
+
     private fun getMmsText(id: String): String {
         val partURI = Uri.parse("content://mms/part/$id")
         var inStream: InputStream? = null
@@ -231,6 +293,9 @@ internal class MmsReaderHandler(
 
     init {
         this.mmsId = mmsId
+        this.tmpFilePath = tmpFilePath ?: (context.cacheDir.absolutePath + "/mmsData$mmsId.dat")
+        // Create parent folder if not exist
+        File(this.tmpFilePath).parentFile!!.mkdirs()
     }
 }
 
@@ -256,6 +321,14 @@ internal class MmsReader(val context: Context, private val binding: ActivityPlug
                 val handler = MmsReaderHandler(context, result, mmsId)
                 binding.addRequestPermissionsResultListener(handler)
                 handler.handleReadMmsImage(permissions)
+            }
+
+            "readMmsBytes" -> {
+                val mmsId = call.argument<Int>("mms_id")!!
+                val tmpFilePath = call.argument<String>("tmp_file_path")
+                val handler = MmsReaderHandler(context, result, mmsId, tmpFilePath)
+                binding.addRequestPermissionsResultListener(handler)
+                handler.handleReadMmsBytes(permissions)
             }
 
             else -> {

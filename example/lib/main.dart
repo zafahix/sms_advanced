@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:sms_advanced/sms_advanced.dart';
+import 'package:video_player/video_player.dart';
 
 void main() {
   runApp(const MyApp());
@@ -50,7 +53,8 @@ class _MyAppState extends State<MyApp> {
                     },
                     minVerticalPadding: 8,
                     minLeadingWidth: 4,
-                    title: Text(threads[index].messages.last.body ?? threads[index].messages.first.contentType ?? 'empty'),
+                    title:
+                        Text(threads[index].messages.last.body ?? threads[index].messages.first.contentType ?? 'empty'),
                     subtitle: Text(threads[index].contact?.address ?? 'empty'),
                   ),
                   const Divider()
@@ -112,6 +116,38 @@ class _ListSmsPageState extends State<ListSmsPage> {
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
                       return Image.memory(snapshot.data as Uint8List);
+                    }
+                    return const SizedBox();
+                  },
+                ),
+              if (msg.hasVideo)
+                FutureBuilder(
+                  future: mmsReader.readMmsBytes(msg.id!),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final file = File(snapshot.data as String);
+                      if (!file.existsSync()) {
+                        print("file not exist");
+                        return const SizedBox();
+                      }
+                      final videoPlayerController = VideoPlayerController.file(file);
+
+                      final chewieController = ChewieController(
+                        videoPlayerController: videoPlayerController,
+                        autoPlay: true,
+                        looping: true,
+                      );
+
+                      final playerWidget = Chewie(
+                        controller: chewieController,
+                      );
+
+                      print("file size ${file.lengthSync()}");
+                      print("snapshot.data ${snapshot.data}");
+                      return AspectRatio(
+                        aspectRatio: videoPlayerController.value.aspectRatio,
+                        child: playerWidget,
+                      );
                     }
                     return const SizedBox();
                   },
