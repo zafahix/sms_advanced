@@ -136,7 +136,7 @@ internal class UserProfileHandler(
 }
 
 internal class UserProfileProvider(val context: Context, private val binding: ActivityPluginBinding) : MethodCallHandler {
-    private val permissions: Permissions = Permissions(context, binding.activity )
+    private val permissions: Permissions = Permissions(context, binding.activity as FlutterFragmentActivity)
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         if (call.method != "getUserProfile") {
             result.notImplemented()

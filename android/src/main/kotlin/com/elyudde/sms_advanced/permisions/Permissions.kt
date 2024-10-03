@@ -1,6 +1,5 @@
 package com.elyudde.sms_advanced.permisions
 
-import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -11,7 +10,7 @@ import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener
 /**
  * Created by crazygenius on 1/08/21.
  */
-class Permissions(private val context: Context, val activity: Activity) {
+class Permissions(private val context: Context, val activity: FlutterFragmentActivity) {
     private fun hasPermission(permission: String): Boolean {
         return (Build.VERSION.SDK_INT < Build.VERSION_CODES.M
                 || context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED)

@@ -20,7 +20,7 @@ import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener
 class SmsRemover internal constructor(val context: Context, private val binding: ActivityPluginBinding) :
     RequestPermissionsResultListener,
     MethodCallHandler {
-    private val permissions: Permissions = Permissions(context, binding.activity )
+    private val permissions: Permissions = Permissions(context, binding.activity as FlutterFragmentActivity)
     private fun deleteSms(id: Int, thread_id: Int): Boolean {
         try {
             context.contentResolver.delete(

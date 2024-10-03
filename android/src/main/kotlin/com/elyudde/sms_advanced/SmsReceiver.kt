@@ -28,7 +28,7 @@ import java.util.*
 internal class SmsReceiver(val context: Context, private val binding: ActivityPluginBinding) : EventChannel.StreamHandler,
     RequestPermissionsResultListener {
     private var receiver: BroadcastReceiver? = null
-    private val permissions: Permissions = Permissions(context, binding.activity)
+    private val permissions: Permissions = Permissions(context, binding.activity as FlutterFragmentActivity)
     private val permissionsList =
         arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
     private var sink: EventSink? = null
