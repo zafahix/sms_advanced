@@ -66,7 +66,7 @@ internal class SmsSenderMethodHandler(
     @TargetApi(Build.VERSION_CODES.KITKAT)
     private fun sendSmsMessage() {
         val sentIntent = Intent("SMS_SENT")
-        .putExtra("sentId", sentId)
+            .putExtra("sentId", sentId)
         val sentPendingIntent = PendingIntent.getBroadcast(
             context,
             0,
@@ -91,7 +91,18 @@ internal class SmsSenderMethodHandler(
                 return
             }
         }
-        sms.sendTextMessage(address, null, body, sentPendingIntent, deliveredPendingIntent)
+
+        val messageParts = sms.divideMessage(body)
+
+        val sentIntents = ArrayList<PendingIntent>()
+        val deliveredIntents = ArrayList<PendingIntent>()
+
+        for (i in messageParts.indices) {
+            sentIntents.add(sentPendingIntent)
+            deliveredIntents.add(deliveredPendingIntent)
+        }
+
+        sms.sendMultipartTextMessage(address, null, messageParts, sentIntents, deliveredIntents)
         result.success(null)
     }
 
